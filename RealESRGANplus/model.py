@@ -122,42 +122,26 @@ class RealESRGANplus:
                 bg_upsampler=self.upsampler)
             print('Face enhancer loaded successfully.')
 
-    def upscale_image(self, input_path):
+    def upscale_image(self, img):
         """
         Upscale the input image using the Real-ESRGAN model.
         Args:
-            input_path (str): Path to the input image or directory containing images.
+        img: numpy image    
         Returns:
             results (list): List of upscaled images.
         """
         # Check if the input path is a file or a directory
-        if os.path.isfile(input_path):
-            paths = [input_path]
-        else:
-            paths = sorted(glob.glob(os.path.join(input_path, '*')))
-
-        results = {}                       # Initialize the results list
-        for idx, path in enumerate(paths):
-            imgname, _ = os.path.splitext(os.path.basename(path))
-            print('Processing:', idx, imgname)
-
-            # Load the image
-            img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-            if img is None:
-                print(f'Error: Failed to load {path}')
-                continue
-
-            try:
-                if self.face_enhance and self.face_enhancer:
-                    _, _, output = self.face_enhancer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
-                else:
-                    output, _ = self.upsampler.enhance(img, outscale=self.outscale)
-            except RuntimeError as error:
-                print('Error:', error)
-                continue
+        print('Processing image')
+            
+        try:
+            if self.face_enhance and self.face_enhancer:
+                _, _, output = self.face_enhancer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
             else:
-                results[imgname] = output
-        return results
+                output, _ = self.upsampler.enhance(img, outscale=self.outscale)
+        except RuntimeError as error:
+            print('Error:', error)
+        else:
+            return output
     
     def upscale_video(self, input_path, output_path, ffmpeg_bin='ffmpeg'):
         """
@@ -258,10 +242,10 @@ if __name__ == '__main__':
                               fp32=True,
                               alpha_upsampler='realesrgan')
     
-    results = upscaler.upscale_image('inputs\lr_image.png')
+    img = cv2.imread('inputs\lr_image.png', cv2.IMREAD_UNCHANGED)
+    result = upscaler.upscale_image(img)
     os.makedirs('outputs', exist_ok=True)
-    for file_name, img in results.items():
-        cv2.imwrite(f'outputs/out_{file_name}.png', img)
+    cv2.imwrite(f'outputs/out__image.png', result)
 
     # How to use the Video Upscale Model
     print('Real-ESRGAN Video Upscaler')
